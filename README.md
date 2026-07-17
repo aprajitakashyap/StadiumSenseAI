@@ -1,6 +1,6 @@
 # StadiumSense AI 🏟️
 
-A smart GenAI assistant for FIFA World Cup stadium visitors — built with Python (FastAPI) + Gemini AI + vanilla HTML/CSS/JS. No build tools required.
+A smart stadium assistant for FIFA World Cup visitors — built with Python (Flask) and vanilla HTML/CSS/JS. No API key required. Works 100% offline.
 
 ---
 
@@ -8,86 +8,77 @@ A smart GenAI assistant for FIFA World Cup stadium visitors — built with Pytho
 
 **Stadium Navigation & Fan Experience Assistant**
 
-Helps visitors find gates, seats, restrooms, food courts, medical stations, accessible routes, and answers common FAQs — in English, Spanish, or French.
+Helps visitors navigate Lusail Iconic Stadium — find gates, seating blocks, restrooms, food courts, medical stations, merchandise stores, parking, metro, and accessible routes — in English, Spanish, or French.
 
 ---
 
 ## Architecture
 
 ```
-Browser (HTML/CSS/JS)
-        │
-        │  POST /chat  GET /faq  GET /locations  GET /routes
-        ▼
-  FastAPI Backend (Python)
-        │
-        ├── Keyword-match user message → pull relevant DB context
-        ├── Build prompt: system + context + user question + language
-        └── Gemini 1.5 Flash API → response → browser
-        
-  Data: in-memory store (db.py)
-        1 stadium · 18 locations · 10 FAQs · 5 routes
+Browser  (HTML / CSS / JS — single file, zero build step)
+    │
+    │  POST /chat   GET /faq   GET /locations   GET /routes   GET /health
+    ▼
+Flask Backend (Python 3, 1 dependency)
+    │
+    ├── assistant.py  →  Intent detection engine (13 intents, keyword scoring)
+    ├── data.py       →  In-memory data store (stadium, locations, FAQs, routes)
+    └── app.py        →  REST API + serves frontend
 ```
 
 ---
 
 ## How It Works
 
-1. User types a question (or taps a FAQ chip) and selects a language (EN/ES/FR)
-2. Frontend sends `POST /chat` with `{ message, language }`
-3. Backend extracts keywords, matches relevant locations + FAQs from the data store
-4. Injects that context into a Gemini prompt alongside the system instructions
-5. Gemini returns a grounded, language-correct response
-6. Response is displayed as a chat bubble
+1. User types a question (or taps a FAQ chip) and picks a language (EN / ES / FR)
+2. Frontend sends `POST /chat { message, language }` to the Flask backend
+3. `assistant.py` scores the message against 13 intent categories using keyword matching
+4. Best-matching intent returns a rich, structured response — gates, restrooms, food, accessible routes, etc.
+5. If no intent matches, it falls back to FAQ keyword search, then a helpful menu response
+6. Response rendered in the chat UI instantly — no external API calls, no latency
 
-**Smart context injection** means the AI answers with real stadium data, not hallucinations.
+**13 supported intents:** greeting · gate · restroom · food · seat · parking · metro · medical · merchandise · accessible · prohibited · reentry · wifi
 
 ---
 
 ## Local Setup
 
-### Prerequisites
-- Python 3.10+
-- A free Gemini API key → [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+### Requirements
+- Python 3.8+
+- Flask (only dependency)
 
-### Run in 3 steps
+### Run in 3 commands
 
 ```bash
-# 1. Clone
 git clone https://github.com/aprajitakashyap/MatchFlowAI.git
-cd MatchFlowAI
-
-# 2. Install dependencies
-cd backend
+cd MatchFlowAI/backend
 pip install -r requirements.txt
-
-# 3. Set your API key and start
-echo "GEMINI_API_KEY=your_key_here" > .env
-python main.py
+python app.py
 ```
 
-Open **http://localhost:8000** — the backend serves the frontend automatically.
+Open **http://localhost:8000** in your browser. That's it.
 
 ---
 
-## API Endpoints
+## API Reference
 
-| Method | Path         | Description                              |
-|--------|-------------|------------------------------------------|
-| POST   | `/chat`      | Send message, receive AI response        |
-| GET    | `/faq`       | All FAQs (shown as suggestion chips)     |
-| GET    | `/locations` | All stadium locations by category        |
-| GET    | `/routes`    | All routes with accessibility flag       |
-| GET    | `/health`    | Health check                             |
+| Method | Endpoint     | Description                          |
+|--------|-------------|--------------------------------------|
+| POST   | `/chat`      | Smart AI response (no API key needed)|
+| GET    | `/faq`       | All 10 FAQs                          |
+| GET    | `/locations` | All 18 stadium locations             |
+| GET    | `/routes`    | 5 routes with accessibility flag     |
+| GET    | `/health`    | Health check                         |
+| GET    | `/`          | Serves the frontend                  |
 
 ### POST /chat
 
 ```json
 // Request
-{ "message": "Where is the nearest restroom?", "language": "en" }
+{ "message": "Where is the restroom?", "language": "en" }
 
-// Response  
-{ "response": "The nearest accessible restroom is at Gate A on Level 1." }
+// Response
+{ "response": "🚻 Restrooms:\n• Level 1 North – near Gate A\n• ♿ Accessible Restroom – Gate A, Level 1..." }
 ```
 
 **Supported languages:** `en` · `es` · `fr`
@@ -99,13 +90,14 @@ Open **http://localhost:8000** — the backend serves the frontend automatically
 ```
 MatchFlowAI/
 ├── backend/
-│   ├── main.py          # FastAPI app — all endpoints + Gemini integration
-│   ├── db.py            # In-memory data store + context builder
-│   └── requirements.txt # 4 dependencies only
+│   ├── app.py          # Flask app — REST endpoints, CORS, serves frontend
+│   ├── assistant.py    # Intent detection engine — 13 intents, multi-language
+│   ├── data.py         # In-memory store — 18 locations, 10 FAQs, 5 routes
+│   └── requirements.txt  # 1 dependency: flask
 ├── frontend/
 │   └── public/
-│       └── index.html   # Complete UI — single file, zero build step
-├── .env.example         # Environment variable template
+│       └── index.html  # Complete chat UI — pure HTML/CSS/JS, no build step
+├── .env.example
 ├── .gitignore
 └── README.md
 ```
@@ -114,18 +106,17 @@ MatchFlowAI/
 
 ## Design Decisions
 
-- **No database server** — data lives in `db.py` (in-memory). Zero infra to spin up.
-- **No frontend build step** — pure HTML/CSS/JS, opens directly in browser.
-- **Keyword-matched context** — only relevant locations/FAQs are sent to Gemini, keeping prompts focused and responses fast (< 3s target).
-- **Multilingual** — language is passed per-request; Gemini handles the translation natively.
-- **Accessible** — semantic HTML, ARIA labels, keyboard navigation, sufficient color contrast.
-- **Repo < 10 MB** — no compiled artifacts, no `node_modules`, no large binaries.
+- **No API key / no external calls** — intent detection runs locally, instant responses
+- **No database** — data is in `data.py`, zero infrastructure to set up
+- **No frontend build** — single HTML file served directly by Flask
+- **Multi-language** — all 13 intents have EN / ES / FR responses
+- **Accessible UI** — semantic HTML, ARIA roles, keyboard navigation, sufficient contrast
+- **Repo < 10 MB** — 504 KB total, no compiled artifacts or dependencies committed
 
 ---
 
 ## Assumptions
 
-- Gemini API key is provided via environment variable (never hardcoded)
-- Stadium data is seeded for Lusail Iconic Stadium (FIFA World Cup final venue)
-- The assistant stays in scope — it answers stadium questions only, not general queries
-- Re-entry policy, prohibited items, and accessibility info reflect standard FIFA guidelines
+- Stadium data is based on Lusail Iconic Stadium (FIFA World Cup final venue, Qatar)
+- Wi-Fi network name, parking zones, and re-entry policy reflect typical FIFA stadium standards
+- The assistant intentionally stays in scope — it answers stadium-related questions only
