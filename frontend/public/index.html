@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="StadiumSense AI – Your FIFA World Cup Stadium Assistant" />
+  <title>StadiumSense AI</title>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-900: #0a0e1a;
+      --navy-800: #0d1224;
+      --navy-700: #111827;
+      --navy-600: #1a2540;
+      --navy-500: #243058;
+      --accent:   #00e676;
+      --accent-dk:#00c853;
+      --text:     #e5e7eb;
+      --text-dim: #6b7280;
+      --red:      #f87171;
+      --radius:   14px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--navy-900);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 680px;
+      margin: 0 auto;
+      background: var(--navy-800);
+      box-shadow: 0 0 60px rgba(0,0,0,.6);
+    }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--navy-900);
+      border-bottom: 1px solid var(--navy-600);
+      flex-shrink: 0;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .logo {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dk));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 12px rgba(0,230,118,.25);
+    }
+
+    .brand h1  { font-size: 16px; font-weight: 700; color: #fff; }
+    .brand p   { font-size: 11px; color: var(--accent); font-weight: 500; }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+
+    .status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-dim);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%; background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100%{ opacity:1; } 50%{ opacity:.4; }
+    }
+
+    /* Language selector */
+    .lang-group {
+      display: flex; gap: 2px;
+      background: var(--navy-600);
+      border-radius: 8px; padding: 3px;
+    }
+    .lang-btn {
+      border: none; cursor: pointer;
+      padding: 5px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      background: transparent; color: var(--text-dim);
+      transition: all .2s;
+    }
+    .lang-btn.active {
+      background: var(--accent); color: var(--navy-900);
+      box-shadow: 0 2px 8px rgba(0,230,118,.3);
+    }
+    .lang-btn:hover:not(.active) { color: #fff; }
+
+    /* ── Chat window ─────────────────────────────────────────────── */
+    #chat {
+      flex: 1; overflow-y: auto;
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 14px;
+      scroll-behavior: smooth;
+    }
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-thumb { background: var(--navy-600); border-radius: 4px; }
+
+    /* Message rows */
+    .msg-row {
+      display: flex; align-items: flex-end; gap: 8px;
+      animation: slideUp .25s ease-out;
+    }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    @keyframes slideUp {
+      from{ transform:translateY(8px); opacity:0; }
+      to  { transform:translateY(0);   opacity:1; }
+    }
+
+    .avatar {
+      width: 32px; height: 32px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .avatar.ai   { background: var(--navy-600); border: 1px solid rgba(0,230,118,.3); }
+    .avatar.user { background: var(--accent); color: var(--navy-900); }
+
+    .bubble {
+      max-width: 72%; padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 14px; line-height: 1.55;
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .bubble.ai {
+      background: var(--navy-700);
+      border: 1px solid var(--navy-600);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+    .bubble.user {
+      background: var(--accent);
+      color: var(--navy-900);
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+    }
+    .ts {
+      display: block; font-size: 11px; margin-top: 5px;
+      opacity: .55; text-align: right;
+    }
+    .bubble.ai .ts { text-align: left; }
+
+    /* Typing indicator */
+    .typing-dots { display: flex; gap: 4px; padding: 6px 2px; }
+    .typing-dots span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); opacity: .5;
+      animation: bounce 1.4s infinite;
+    }
+    .typing-dots span:nth-child(2){ animation-delay:.2s; }
+    .typing-dots span:nth-child(3){ animation-delay:.4s; }
+    @keyframes bounce {
+      0%,80%,100%{ transform:scale(.6); opacity:.4; }
+      40%        { transform:scale(1);  opacity:1;  }
+    }
+
+    /* Error toast */
+    .error-toast {
+      text-align: center; font-size: 12px; color: var(--red);
+      background: rgba(248,113,113,.08);
+      border: 1px solid rgba(248,113,113,.25);
+      border-radius: 8px; padding: 8px 14px;
+      animation: slideUp .25s ease-out;
+    }
+
+    /* ── Suggestion chips ────────────────────────────────────────── */
+    #chips {
+      padding: 0 16px 10px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    #chips-label {
+      width: 100%; font-size: 11px;
+      color: var(--text-dim); margin-bottom: 2px;
+    }
+    .chip {
+      border: 1px solid rgba(0,230,118,.35);
+      background: transparent; color: var(--accent);
+      border-radius: 20px; padding: 6px 12px;
+      font-size: 12px; cursor: pointer;
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; max-width: 240px;
+      transition: all .2s;
+    }
+    .chip:hover { background: rgba(0,230,118,.1); border-color: var(--accent); }
+
+    /* ── Input bar ───────────────────────────────────────────────── */
+    #input-bar {
+      display: flex; align-items: flex-end; gap: 8px;
+      padding: 12px 16px;
+      background: var(--navy-900);
+      border-top: 1px solid var(--navy-600);
+      flex-shrink: 0;
+    }
+
+    #msg-input {
+      flex: 1; resize: none; overflow: hidden;
+      min-height: 44px; max-height: 120px;
+      background: var(--navy-700);
+      border: 1px solid var(--navy-600);
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: var(--text); font-size: 14px;
+      line-height: 1.45; font-family: inherit;
+      outline: none; transition: border-color .2s;
+    }
+    #msg-input::placeholder { color: var(--text-dim); }
+    #msg-input:focus { border-color: var(--accent); }
+
+    #send-btn {
+      width: 44px; height: 44px; flex-shrink: 0;
+      border-radius: 12px; border: none; cursor: pointer;
+      background: var(--accent); color: var(--navy-900);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+      box-shadow: 0 4px 12px rgba(0,230,118,.25);
+    }
+    #send-btn:hover  { background: var(--accent-dk); }
+    #send-btn:disabled {
+      background: var(--navy-600); color: var(--text-dim);
+      box-shadow: none; cursor: not-allowed;
+    }
+    #send-btn svg { width: 20px; height: 20px; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .status { display: none; }
+      .bubble { max-width: 85%; }
+    }
+  </style>
+</head>
+<body>
+<div id="app" role="main">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo" role="img" aria-label="Stadium">🏟️</div>
+      <div class="brand">
+        <h1>StadiumSense AI</h1>
+        <p>FIFA World Cup Assistant</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status" aria-hidden="true">
+        <span class="dot"></span>
+        <span>Online</span>
+      </div>
+      <div class="lang-group" role="group" aria-label="Select language">
+        <button class="lang-btn active" data-lang="en" aria-pressed="true">EN</button>
+        <button class="lang-btn"        data-lang="es" aria-pressed="false">ES</button>
+        <button class="lang-btn"        data-lang="fr" aria-pressed="false">FR</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Chat messages -->
+  <div id="chat" role="log" aria-live="polite" aria-label="Chat messages"></div>
+
+  <!-- FAQ suggestion chips -->
+  <div id="chips" aria-label="Quick questions"></div>
+
+  <!-- Input bar -->
+  <div id="input-bar">
+    <textarea
+      id="msg-input"
+      rows="1"
+      placeholder="Ask about gates, seats, food, accessible routes…"
+      aria-label="Type your message"
+    ></textarea>
+    <button id="send-btn" aria-label="Send message" disabled>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────────
+  // BACKEND_URL is replaced at deploy time; empty string = same origin (dev)
+  const BACKEND_URL = window.__BACKEND_URL__ || '';
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let lang       = 'en';
+  let loading    = false;
+  let chipsShown = false;
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const chatEl    = document.getElementById('chat');
+  const chipsEl   = document.getElementById('chips');
+  const inputEl   = document.getElementById('msg-input');
+  const sendBtn   = document.getElementById('send-btn');
+  const langBtns  = document.querySelectorAll('.lang-btn');
+
+  // ── Language selector ─────────────────────────────────────────────────────
+  langBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      lang = btn.dataset.lang;
+      langBtns.forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+      });
+      inputEl.placeholder = {
+        en: 'Ask about gates, seats, food, accessible routes…',
+        es: 'Pregunta sobre puertas, asientos, comida, rutas accesibles…',
+        fr: 'Posez vos questions sur les portes, sièges, nourriture, itinéraires…',
+      }[lang];
+    });
+  });
+
+  // ── Input auto-resize + enable send btn ──────────────────────────────────
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    sendBtn.disabled = !inputEl.value.trim() || loading;
+  });
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) handleSend();
+    }
+  });
+
+  sendBtn.addEventListener('click', handleSend);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function now() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendMessage(role, text) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+    row.setAttribute('role', 'listitem');
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role}`;
+    avatar.textContent = role === 'user' ? 'Y' : '⚽';
+    avatar.setAttribute('aria-hidden', 'true');
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}`;
+    bubble.textContent = text;
+
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.setAttribute('aria-label', 'sent at ' + now());
+    ts.textContent = now();
+    bubble.appendChild(ts);
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatEl.appendChild(row);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return row;
+  }
+
+  function appendTyping() {
+    const row = document.createElement('div');
+    row.className = 'msg-row ai';
+    row.id = 'typing';
+    row.setAttribute('aria-label', 'AI is typing');
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar ai';
+    avatar.textContent = '⚽';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble ai';
+    bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatEl.appendChild(row);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing');
+    if (el) el.remove();
+  }
+
+  function showError(msg) {
+    const div = document.createElement('div');
+    div.className = 'error-toast';
+    div.setAttribute('role', 'alert');
+    div.textContent = msg;
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    setTimeout(() => div.remove(), 5000);
+  }
+
+  function hideChips() {
+    chipsEl.innerHTML = '';
+    chipsShown = true;
+  }
+
+  // ── Send message ──────────────────────────────────────────────────────────
+  async function handleSend(text) {
+    const message = typeof text === 'string' ? text : inputEl.value.trim();
+    if (!message || loading) return;
+
+    hideChips();
+    appendMessage('user', message);
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    loading = true;
+    appendTyping();
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, language: lang }),
+      });
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      removeTyping();
+      appendMessage('ai', data.response);
+    } catch (err) {
+      removeTyping();
+      showError({ en: 'Could not get a response. Please try again.', es: 'No se pudo obtener respuesta. Intenta de nuevo.', fr: 'Impossible d\'obtenir une réponse. Réessayez.' }[lang]);
+    } finally {
+      loading = false;
+      sendBtn.disabled = !inputEl.value.trim();
+    }
+  }
+
+  // ── Load FAQs and render chips ────────────────────────────────────────────
+  async function loadChips() {
+    try {
+      const res  = await fetch(`${BACKEND_URL}/faq`);
+      const faqs = await res.json();
+
+      if (!faqs.length) return;
+
+      const label = document.createElement('div');
+      label.id = 'chips-label';
+      label.setAttribute('aria-hidden', 'true');
+      label.textContent = { en: 'Quick questions:', es: 'Preguntas rápidas:', fr: 'Questions rapides:' }[lang] || 'Quick questions:';
+      chipsEl.appendChild(label);
+
+      faqs.slice(0, 4).forEach(faq => {
+        const btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.textContent = faq.question;
+        btn.title = faq.question;
+        btn.addEventListener('click', () => handleSend(faq.question));
+        chipsEl.appendChild(btn);
+      });
+    } catch (_) { /* silently skip if backend not ready */ }
+  }
+
+  // ── Welcome message + init ────────────────────────────────────────────────
+  appendMessage('ai',
+    'Welcome to StadiumSense AI! 👋\n' +
+    'I\'m here to help you navigate the FIFA World Cup stadium.\n' +
+    'Ask me about gates, seating, food courts, restrooms, accessible routes, and more!'
+  );
+  loadChips();
+</script>
+</body>
+</html>
