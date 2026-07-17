@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: stadiumsense-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: stadiumsense
+      POSTGRES_USER: stadiumsense
+      POSTGRES_PASSWORD: stadiumsense
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stadiumsense -d stadiumsense"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stadiumsense-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/stadiumsense
+      DB_USER: stadiumsense
+      DB_PASSWORD: stadiumsense
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      FRONTEND_URL: http://localhost:5173
+      PORT: 8080
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_BACKEND_URL: ""   # Empty = use nginx proxy or relative path
+    container_name: stadiumsense-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:8080"
+    environment:
+      NGINX_PORT: 8080
+
+volumes:
+  postgres_data:
