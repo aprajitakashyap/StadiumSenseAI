@@ -1,14 +1,15 @@
-# StadiumSense AI 🏟️
+# StadiumSenseAI 🏟️
 
-A smart stadium assistant for FIFA World Cup visitors — built with Python (Flask) and vanilla HTML/CSS/JS. No API key required. Works 100% offline.
+A smart, multilingual stadium assistant for FIFA World Cup visitors.
+Answers questions about gates, seating, food, restrooms, parking, metro, medical, merchandise, accessible routes — in English, Spanish, and French.
+
+**No API key. No database. No build step. One command to run.**
 
 ---
 
-## Chosen Vertical
+## Live Application
 
-**Stadium Navigation & Fan Experience Assistant**
-
-Helps visitors navigate Lusail Iconic Stadium — find gates, seating blocks, restrooms, food courts, medical stations, merchandise stores, parking, metro, and accessible routes — in English, Spanish, or French.
+🚀 **https://stadiumsenseai.onrender.com**
 
 ---
 
@@ -19,25 +20,12 @@ Browser  (HTML / CSS / JS — single file, zero build step)
     │
     │  POST /chat   GET /faq   GET /locations   GET /routes   GET /health
     ▼
-Flask Backend (Python 3, 1 dependency)
+Flask + Gunicorn (Python 3.11)
     │
     ├── assistant.py  →  Intent detection engine (13 intents, keyword scoring)
-    ├── data.py       →  In-memory data store (stadium, locations, FAQs, routes)
+    ├── data.py       →  In-memory store (18 locations · 10 FAQs · 5 routes)
     └── app.py        →  REST API + serves frontend
 ```
-
----
-
-## How It Works
-
-1. User types a question (or taps a FAQ chip) and picks a language (EN / ES / FR)
-2. Frontend sends `POST /chat { message, language }` to the Flask backend
-3. `assistant.py` scores the message against 13 intent categories using keyword matching
-4. Best-matching intent returns a rich, structured response — gates, restrooms, food, accessible routes, etc.
-5. If no intent matches, it falls back to FAQ keyword search, then a helpful menu response
-6. Response rendered in the chat UI instantly — no external API calls, no latency
-
-**13 supported intents:** greeting · gate · restroom · food · seat · parking · metro · medical · merchandise · accessible · prohibited · reentry · wifi
 
 ---
 
@@ -45,9 +33,6 @@ Flask Backend (Python 3, 1 dependency)
 
 ### Requirements
 - Python 3.8+
-- Flask (only dependency)
-
-### Run in 3 commands
 
 ```bash
 git clone https://github.com/aprajitakashyap/MatchFlowAI.git
@@ -56,32 +41,72 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://localhost:8000** in your browser. That's it.
+Open **http://localhost:8000**
+
+---
+
+## Docker
+
+```bash
+# Build
+docker build -t stadiumsenseai .
+
+# Run
+docker run -p 8080:8080 stadiumsenseai
+
+# Open
+open http://localhost:8080
+```
 
 ---
 
 ## API Reference
 
-| Method | Endpoint     | Description                          |
-|--------|-------------|--------------------------------------|
-| POST   | `/chat`      | Smart AI response (no API key needed)|
-| GET    | `/faq`       | All 10 FAQs                          |
-| GET    | `/locations` | All 18 stadium locations             |
-| GET    | `/routes`    | 5 routes with accessibility flag     |
-| GET    | `/health`    | Health check                         |
-| GET    | `/`          | Serves the frontend                  |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Frontend UI |
+| `GET` | `/health` | Health check → `{"status":"UP"}` |
+| `GET` | `/faq` | All 10 FAQs |
+| `GET` | `/locations` | All 18 stadium locations |
+| `GET` | `/routes` | 5 routes with accessibility flag |
+| `POST` | `/chat` | AI response |
 
 ### POST /chat
-
 ```json
 // Request
 { "message": "Where is the restroom?", "language": "en" }
 
 // Response
-{ "response": "🚻 Restrooms:\n• Level 1 North – near Gate A\n• ♿ Accessible Restroom – Gate A, Level 1..." }
+{ "response": "🚻 Restrooms:\n• Level 1 North..." }
 ```
+Languages: `en` · `es` · `fr`
 
-**Supported languages:** `en` · `es` · `fr`
+---
+
+## Render Deployment
+
+Deployed as a **Docker Web Service** on Render Free Tier.
+
+### Configuration
+| Setting | Value |
+|---------|-------|
+| Runtime | Docker |
+| Branch | main |
+| Dockerfile | `./Dockerfile` |
+| Health Check | `/health` |
+| Auto Deploy | Enabled |
+| Environment | `PORT=8080` |
+
+### Deploy your own
+
+1. Fork https://github.com/aprajitakashyap/MatchFlowAI
+2. Go to [render.com](https://render.com) → New → Web Service
+3. Connect your fork
+4. Select **Docker** runtime
+5. Set Health Check Path to `/health`
+6. Deploy
+
+The `render.yaml` in the repo auto-configures everything.
 
 ---
 
@@ -90,13 +115,15 @@ Open **http://localhost:8000** in your browser. That's it.
 ```
 MatchFlowAI/
 ├── backend/
-│   ├── app.py          # Flask app — REST endpoints, CORS, serves frontend
-│   ├── assistant.py    # Intent detection engine — 13 intents, multi-language
-│   ├── data.py         # In-memory store — 18 locations, 10 FAQs, 5 routes
-│   └── requirements.txt  # 1 dependency: flask
+│   ├── app.py          # Flask app — all endpoints + serves frontend
+│   ├── assistant.py    # Intent engine — 13 intents, EN/ES/FR responses
+│   ├── data.py         # In-memory data — 18 locations, 10 FAQs, 5 routes
+│   └── requirements.txt  # flask + gunicorn
 ├── frontend/
 │   └── public/
-│       └── index.html  # Complete chat UI — pure HTML/CSS/JS, no build step
+│       └── index.html  # Complete chat UI — single file
+├── Dockerfile          # python:3.11-slim, non-root, gunicorn
+├── render.yaml         # Render auto-configuration
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -104,19 +131,11 @@ MatchFlowAI/
 
 ---
 
-## Design Decisions
+## Features
 
-- **No API key / no external calls** — intent detection runs locally, instant responses
-- **No database** — data is in `data.py`, zero infrastructure to set up
-- **No frontend build** — single HTML file served directly by Flask
-- **Multi-language** — all 13 intents have EN / ES / FR responses
-- **Accessible UI** — semantic HTML, ARIA roles, keyboard navigation, sufficient contrast
-- **Repo < 10 MB** — 504 KB total, no compiled artifacts or dependencies committed
-
----
-
-## Assumptions
-
-- Stadium data is based on Lusail Iconic Stadium (FIFA World Cup final venue, Qatar)
-- Wi-Fi network name, parking zones, and re-entry policy reflect typical FIFA stadium standards
-- The assistant intentionally stays in scope — it answers stadium-related questions only
+- **13 intent categories** — greeting, gate, restroom, food, seat, parking, metro, medical, merchandise, accessible, prohibited, reentry, wifi
+- **3 languages** — English, Spanish, French — native responses per language
+- **FAQ chips** — 4 quick-tap questions loaded on startup
+- **Accessible UI** — ARIA roles, keyboard navigation, screen reader support
+- **Mobile-first** — responsive layout, works on any device
+- **Zero secrets** — no API keys, no credentials, nothing to configure
