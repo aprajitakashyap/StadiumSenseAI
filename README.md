@@ -11,6 +11,8 @@ Answers questions about gates, seating, food, restrooms, parking, metro, medical
 
 🚀 **https://stadiumsenseai.onrender.com**
 
+> Hosted on Render Free Tier — first request after inactivity may take ~15s to wake up.
+
 ---
 
 ## Architecture
