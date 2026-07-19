@@ -9,16 +9,16 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:    #4e1327;
-      --card:    #782843;
-      --bubble:  #5a1e35;
-      --border:  #8b3554;
-      --accent:  #ff6b9d;
-      --acc-dk:  #e0527f;
-      --text:    #f5e6ec;
-      --muted:   #c4889f;
-      --danger:  #f87171;
-      --r:       14px;
+      --navy:    #2d1b3d;
+      --card:    #3d2255;
+      --bubble:  #4a2868;
+      --border:  #7b4fa0;
+      --accent:  #ff85c2;
+      --acc-dk:  #f06aaa;
+      --text:    #fce4f6;
+      --muted:   #cc99cc;
+      --danger:  #ff6b8a;
+      --r:       16px;
     }
 
     html, body { height: 100%; background: var(--navy); color: var(--text);
@@ -28,7 +28,8 @@
     #app {
       display: flex; flex-direction: column;
       height: 100dvh; max-width: 700px; margin: 0 auto;
-      background: var(--card); box-shadow: 0 0 80px rgba(0,0,0,.7);
+      background: linear-gradient(160deg, #3d2255 0%, #4a2868 50%, #3d2255 100%);
+      box-shadow: 0 0 80px rgba(255,133,194,.2);
     }
 
     /* ── Header ── */
@@ -43,7 +44,7 @@
       background: linear-gradient(135deg, var(--accent), var(--acc-dk));
       display: flex; align-items: center; justify-content: center;
       font-size: 22px; flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(255,107,157,.35);
+      box-shadow: 0 4px 14px rgba(255,133,194,.4);
     }
     .brand h1 { font-size: 16px; font-weight: 700; color: #fff; }
     .brand p  { font-size: 11px; color: var(--accent); font-weight: 500; }
@@ -69,7 +70,7 @@
       scroll-behavior: smooth;
     }
     #chat::-webkit-scrollbar { width: 4px; }
-    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    #chat::-webkit-scrollbar-thumb { background: rgba(255,133,194,.4); border-radius: 4px; }
 
     .row { display: flex; align-items: flex-end; gap: 8px; animation: up .22s ease-out; }
     .row.user { flex-direction: row-reverse; }
@@ -80,7 +81,7 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 14px; font-weight: 700; user-select: none;
     }
-    .av.ai   { background: var(--border); border: 1px solid rgba(255,107,157,.4); }
+    .av.ai   { background: var(--border); border: 1px solid rgba(255,133,194,.5); }
     .av.user { background: var(--accent); color: var(--navy); }
 
     .bub {
@@ -111,12 +112,12 @@
     #chips { padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 8px; }
     #chips-label { width: 100%; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
     .chip {
-      border: 1px solid rgba(255,107,157,.5); background: transparent; color: var(--accent);
+      border: 1px solid rgba(255,133,194,.55); background: transparent; color: var(--accent);
       border-radius: 20px; padding: 6px 13px; font-size: 12px; cursor: pointer;
       white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis;
       transition: all .2s;
     }
-    .chip:hover { background: rgba(255,107,157,.15); border-color: var(--accent); }
+    .chip:hover { background: rgba(255,133,194,.18); border-color: var(--accent); }
 
     /* ── Input bar ── */
     #bar {
@@ -137,7 +138,7 @@
       width: 44px; height: 44px; flex-shrink: 0; border: none; cursor: pointer;
       border-radius: 12px; background: var(--accent); color: var(--navy);
       display: flex; align-items: center; justify-content: center;
-      transition: all .2s; box-shadow: 0 4px 12px rgba(255,107,157,.35);
+      transition: all .2s; box-shadow: 0 4px 12px rgba(255,133,194,.4);
     }
     #send:hover { background: var(--acc-dk); }
     #send:disabled { background: var(--border); color: var(--muted); box-shadow: none; cursor: not-allowed; }
